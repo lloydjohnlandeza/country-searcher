@@ -1,48 +1,119 @@
 import 'dart:ffi';
 
 import 'package:english_words/english_words.dart';
+import 'package:expense_tracker/api/country_service.dart';
+import 'package:expense_tracker/country_card.dart';
+import 'package:expense_tracker/country_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 void main() {
   runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => MyAppState(),
-      child: MaterialApp(
-        title: 'Namer App',
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
-        ),
-        home: MyHomePage(),
+      child: Consumer<MyAppState>(
+        builder: (context, appState, child) {
+          return MaterialApp(
+            title: 'Countries',
+            theme: ThemeData(
+              useMaterial3: true,
+              scaffoldBackgroundColor: appState.lightMode
+                  ? const Color(0xfffafafa)
+                  : const Color(0xff202c37),
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: appState.lightMode
+                    ? const Color(0xfffafafa)
+                    : const Color(0xff2b3945),
+                primary: appState.lightMode
+                    ? const Color(0xff2b3945)
+                    : const Color(0xfffafafa),
+                onPrimaryFixed: appState.lightMode
+                    ? const Color(0xfffafafa)
+                    : const Color(0xfffafafa),
+              ).copyWith(
+                brightness:
+                    appState.lightMode ? Brightness.light : Brightness.dark,
+              ),
+              textTheme: GoogleFonts.nunitoSansTextTheme(
+                TextTheme(
+                  bodyLarge: TextStyle(
+                    color: appState.lightMode
+                        ? const Color(0xff111517)
+                        : const Color(0xffffffff),
+                  ),
+                  bodyMedium: TextStyle(
+                    color: appState.lightMode
+                        ? const Color(0xff111517)
+                        : const Color(0xffffffff),
+                  ),
+                  titleLarge: TextStyle(
+                    color: appState.lightMode
+                        ? const Color(0xff111517)
+                        : const Color(0xffffffff),
+                  ),
+                ).apply(
+                  bodyColor: appState.lightMode
+                      ? const Color(0xff111517)
+                      : const Color(0xffffffff),
+                  displayColor: appState.lightMode
+                      ? const Color(0xff111517)
+                      : const Color(0xffffffff),
+                ),
+              ),
+              inputDecorationTheme: InputDecorationTheme(
+                labelStyle: TextStyle(
+                  color: appState.lightMode
+                      ? const Color(0xff111517)
+                      : const Color(0xffffffff),
+                ),
+                prefixIconColor: appState.lightMode
+                    ? const Color(0xff111517)
+                    : const Color(0xffffffff),
+              ),
+              appBarTheme: AppBarTheme(
+                backgroundColor: appState.lightMode
+                    ? const Color(0xfffafafa)
+                    : const Color(0xff2b3945),
+                titleTextStyle: GoogleFonts.nunitoSans(
+                  color: appState.lightMode
+                      ? const Color(0xff111517)
+                      : const Color(0xffffffff),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+                iconTheme: IconThemeData(
+                  color: appState.lightMode
+                      ? const Color(0xff111517)
+                      : const Color(0xffffffff),
+                ),
+              ),
+              cardTheme: CardTheme(
+                color: appState.lightMode
+                    ? const Color(0xffffffff)
+                    : const Color(0xff2b3945),
+              ),
+            ),
+            home: MyHomePage(),
+          );
+        },
       ),
     );
   }
 }
 
 class MyAppState extends ChangeNotifier {
-  var current = WordPair.random();
-  var favorites = <WordPair>[];
-  // ↓ Add this.
-  void getNext() {
-    current = WordPair.random();
-    notifyListeners();
-  }
-
-  void toggleFavorite(WordPair pair) {
-    if (favorites.contains(pair)) {
-      favorites.remove(pair);
-    } else {
-      favorites.add(pair);
-    }
+  var lightMode = true;
+  void toggleLightMode() {
+    lightMode = !lightMode;
     notifyListeners();
   }
 }
@@ -53,145 +124,35 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  var selectedIndex = 0;
   @override
   Widget build(BuildContext context) {
-    Widget page;
-    switch (selectedIndex) {
-      case 0:
-        page = GeneratorPage();
-        break;
-      case 1:
-        page = FavoritePage();
-        break;
-      default:
-        throw UnimplementedError('no widget for $selectedIndex');
-    }
-    return LayoutBuilder(builder: (context, constraints) {
-      return Scaffold(
-          body: Row(
-        children: [
-          SafeArea(
-              child: NavigationRail(
-            extended: constraints.maxWidth >= 600,
-            destinations: [
-              NavigationRailDestination(
-                  icon: Icon(Icons.home), label: Text('Home')),
-              NavigationRailDestination(
-                  icon: Icon(Icons.favorite), label: Text('Favorite'))
+    var appState = context.watch<MyAppState>();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Scaffold(
+          extendBodyBehindAppBar: true,
+          appBar: AppBar(
+            title: const Text(
+              'Where in the world',
+            ),
+            actions: <Widget>[
+              IconButton(
+                icon: appState.lightMode
+                    ? Icon(Icons.light_mode)
+                    : Icon(Icons.dark_mode),
+                tooltip: appState.lightMode
+                    ? 'Set to dark mode'
+                    : 'Set to light mode',
+                onPressed: () {
+                  appState.toggleLightMode();
+                },
+              ),
             ],
-            selectedIndex: selectedIndex,
-            onDestinationSelected: (value) {
-              print(value);
-              setState(() {
-                selectedIndex = value;
-              });
-            },
-          )),
-          Expanded(
-            child: Container(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              child: page,
-            ),
-          )
-        ],
-      ));
-    });
-  }
-}
-
-class GeneratorPage extends StatelessWidget {
-  const GeneratorPage({
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context); // ← Add this.
-    final style = theme.textTheme.displaySmall!.copyWith(
-      color: theme.colorScheme.onPrimary,
-    );
-
-    var appState = context.watch<MyAppState>();
-    var pair = appState.current;
-    var favorites = appState.favorites;
-
-    var liked = favorites.contains(pair);
-    IconData icon;
-    if (liked) {
-      icon = Icons.favorite;
-    } else {
-      icon = Icons.favorite_outline;
-    }
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Card(
-          color: theme.colorScheme.primary,
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Text(pair.asLowerCase, style: style),
           ),
-        ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ElevatedButton.icon(
-              icon: Icon(icon),
-              onPressed: () {
-                appState.toggleFavorite(pair);
-                appState.getNext();
-              },
-              label: Text('Favorite'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                appState.getNext();
-              },
-              child: Text('Next'),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class FavoritePage extends StatelessWidget {
-  const FavoritePage({
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final style = theme.textTheme.displaySmall!.copyWith(
-      color: theme.colorScheme.onPrimary,
-    );
-
-    var appState = context.watch<MyAppState>();
-    var favorites = appState.favorites;
-    var list = <Widget>[];
-    for (var pair in favorites) {
-      list.add(
-        Card(child: ListTile(title: Text(pair.asLowerCase))),
-      );
-    }
-
-    return ListView.builder(
-      itemCount: favorites.length,
-      itemBuilder: (context, index) {
-        final item = favorites[index];
-        return Dismissible(
-          key: Key(item.toString()),
-          onDismissed: (direction) {
-            appState.toggleFavorite(item);
-            ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text('$item dismissed')));
-          },
-          child: Card(
-            child: ListTile(
-              title: Text(item.asLowerCase),
+          body: SafeArea(
+            child: Container(
+              alignment: Alignment.center,
+              child: CountryList(),
             ),
           ),
         );
